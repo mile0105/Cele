@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -18,7 +19,7 @@ namespace Exercise_2
             "t3.txt"
         };// klaj gi text files vo ova
 
-        private static Dictionary<string, HashSet<string>> index = new Dictionary<string, HashSet<string>>();
+        private static Dictionary<string, HashSet<PositionsInFile>> index = new Dictionary<string, HashSet<PositionsInFile>>();
         static void Main(string[] args)
         {
             Console.WriteLine("Please enter your search query: ");
@@ -37,14 +38,36 @@ namespace Exercise_2
                     string filePath = rootFilePath + file;
                     string[] lines = File.ReadAllLines(filePath);
                     List<string> words = ExtractWords(lines);
+                    int position = 1;
                     foreach (string word in words)
                     {
                         string lowerCase = word.ToLowerInvariant();
                         if (!index.ContainsKey(lowerCase))
                         {
-                            index.Add(lowerCase, new HashSet<string>());
+                            index.Add(lowerCase, new HashSet<PositionsInFile>());
                         }
-                        index[lowerCase].Add(file);
+                        HashSet<PositionsInFile> positions = index[lowerCase];
+                        if (!positions.Any(m => m.FileName.Equals(file)))
+                        {
+                            index[lowerCase].Add(
+                                new PositionsInFile
+                                {
+                                    FileName = file,
+                                    Positions = new HashSet<int>(new [] {position})
+                                });
+                        }
+                        else
+                        {
+                            try
+                            {
+                                index[lowerCase].First(m => m.FileName.Equals(file)).Positions.Add(position);
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(e);
+                            }
+                        }
+                        position++;
                     }
                 }
                 catch (FileNotFoundException e)
@@ -57,7 +80,7 @@ namespace Exercise_2
         private static void Search(string query)
         {
             string[] words = Regex.Split(query, @"\W+");
-            HashSet<string> result = new HashSet<string>();
+            HashSet<PositionsInFile> result = new HashSet<PositionsInFile>();
             if (!index.ContainsKey(words[0].ToLowerInvariant()))
             {
                 Console.WriteLine("Not found!");
@@ -71,7 +94,8 @@ namespace Exercise_2
                     Console.WriteLine("Not found!");
                     return;
                 }
-                result.IntersectWith(index[word.ToLowerInvariant()]);
+                HashSet<string> filesInCurrentWord = new HashSet<string>(index[word.ToLowerInvariant()].Select(m => m.FileName));
+                result.RemoveWhere(match => !filesInCurrentWord.Contains(match.FileName));
             }
             if (result.Count == 0)
             {
@@ -79,7 +103,10 @@ namespace Exercise_2
             }
             else
             {
-                Console.WriteLine("Found in files: " + String.Join(", ", result));
+                foreach (var pos in result)
+                {
+                    Console.WriteLine("Found in file: " + pos.FileName + " in positions: " + string.Join(", ", pos.Positions));
+                }
             }            
         }
         private static List<string> ExtractWords(string[] lines)
