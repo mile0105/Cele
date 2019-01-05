@@ -87,15 +87,34 @@ namespace Exercise_2
                 return;
             }
             result = index[words[0].ToLowerInvariant()];
-            foreach (var word in words)
+            for (int i = 1; i < words.Length; i++)
             {
-                if (!index.ContainsKey(word.ToLowerInvariant()))
+                string previousWord = words[i - 1].ToLowerInvariant();
+                string currentWord = words[i].ToLowerInvariant();
+                if (!index.ContainsKey(currentWord))
                 {
                     Console.WriteLine("Not found!");
                     return;
                 }
-                HashSet<string> filesInCurrentWord = new HashSet<string>(index[word.ToLowerInvariant()].Select(m => m.FileName));
-                result.RemoveWhere(match => !filesInCurrentWord.Contains(match.FileName));
+                HashSet<PositionsInFile> filesAndPositionsInCurrentWord = new HashSet<PositionsInFile>(index[currentWord]);
+                HashSet<PositionsInFile> filesAndPositionsInPreviousWord = new HashSet<PositionsInFile>(index[previousWord]);
+                var files = filesAndPositionsInCurrentWord.Select(m => m.FileName);
+                result.RemoveWhere(match => !files.Contains(match.FileName));
+                foreach (var res in filesAndPositionsInCurrentWord)
+                {
+                    HashSet<int> currentPositions = res.Positions;
+                    var file = res.FileName;
+                    foreach (var prev in filesAndPositionsInPreviousWord)
+                    {
+                        if (prev.FileName.Equals(file))
+                        {
+                            HashSet<int> previousPositions = prev.Positions;
+                            previousPositions.RemoveWhere(match => !currentPositions.Contains(match + 1));
+                            currentPositions.RemoveWhere(match => !previousPositions.Contains(match - 1));
+                        }
+                    }
+                }
+                result.RemoveWhere(match => !match.Positions.Any());
             }
             if (result.Count == 0)
             {
