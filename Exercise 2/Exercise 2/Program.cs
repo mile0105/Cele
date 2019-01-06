@@ -22,9 +22,9 @@ namespace Exercise_2
         private static Dictionary<string, HashSet<PositionsInFile>> index = new Dictionary<string, HashSet<PositionsInFile>>();
         static void Main(string[] args)
         {
+            CreateIndex();
             Console.WriteLine("Please enter your search query: ");
             string query = Console.ReadLine();
-            CreateIndex();
             Search(query);
             Console.ReadKey();
         }
